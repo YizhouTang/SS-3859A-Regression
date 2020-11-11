@@ -1,0 +1,274 @@
+---
+title: "Assignment 3"
+author: "Yizhou Tang, 250888541"
+date: "November 13, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1
+```{r, include=TRUE}
+#1
+#a)
+#True, increasing the number of predictors will increase R^2.The model curve fit more as it gets more complex.
+
+#b)
+#True, When multicollinearity exists, it increases the variance of the estimated beta parameters, which will the increase in standard error of the parameter estimates.
+
+#c)
+#False, VIF of beta estimates are depended on the R^2 of the regression response of xj on the other predictors
+
+#d)
+#False, a high leverage point "could have a large influence", but not always. A highly influential point needs to have both a high leverage and residual.
+
+#e)
+#No. For example, BIC penalizes the complexity more than AIC. Hence, the result set of predictor variables would most likely be less complex.
+```
+
+\newpage
+
+## Question 2
+```{r, include=TRUE}
+hw3data = read.csv("https://raw.githubusercontent.com/hgweon2/ss3859/master/hw3-data.txt")
+
+#a)
+pairs(hw3data)
+#The scatter plot shows a very significant linear relationship between y and x1
+#y & x2: No relationship reflected on the scatter plot
+#x1 & x2: No relationship reflected on the scatter plot
+
+#b)
+model = lm(y ~ x1+x2, data = hw3data)
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(model))  
+qqline(resid(model), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(model), resid(model), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+
+#Normality is vioated: the observations do not seem to follow a normal distribution when comparing the tails.
+
+#Linearity is violated, because residual plot shows mean of e varies systematically
+
+#Equal variance is not violated, because the spread of e does appear to be constant
+
+#c)
+lev_fit = lm(y~.,data = hw3data)
+
+# Cook's distance
+temp = cooks.distance(lev_fit)
+n = 200 #number of observations
+
+#The influential points' indices are:
+influPoints = temp[temp > 4 /n]
+influPoints
+
+#d)
+
+# checking outliers
+ #standardized residuals
+rstandard(lev_fit)[temp>4/n] >2
+#Outlier indices are 24,31,139,143,and 193
+
+#e)
+#Remove influential points found in c)
+reducedData = hw3data
+#Add a column that matches the cook's distance for each data point
+reducedData$cooks = temp
+#Remove the influential points
+reducedData<-reducedData[!(reducedData$cooks>4/n),]
+
+#Repeat b on the new data
+model = lm(y ~ x1+x2, data = reducedData)
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(model))  
+qqline(resid(model), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(model), resid(model), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+#No, it was not useful, the previously violated assumptions were not fixed.
+
+#f)
+library(MASS)
+model = lm(y ~ x1+x2, data = hw3data)
+bc = boxcox(model)
+
+#Find the appropriate lambda
+lambda <- bc$x[which.max(bc$y)]
+lambda
+
+#Transformation
+lm_cox <- lm(((y^(lambda)-1)/(lambda)) ~ x1+x2, data = hw3data)
+
+#Repeat b on the new data
+
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(lm_cox))  
+qqline(resid(lm_cox), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(lm_cox), resid(lm_cox), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+
+#Normality is stil vioated, however, it follows normal distribution a lot better than before
+
+#Linearity is still violated, however, the residual plot appears a lot more random than before.
+
+#Equal variance is violated, the spread of e does not appear to be constant anymore
+
+
+#g)
+
+model1 = lm(y ~ x1+x2+I(x1^2)+I(x2^2), data = hw3data)
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(model1))  
+qqline(resid(model1), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(model1), resid(model1), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+#This model is preferable to the previous resulting models in b and f. 
+#Because the model assumptions are met.
+#Normality is not violated. The distribution tracks normal distribution very closely.
+#Linearity is not violated, residual plot shows mean of e does not systematically
+#Equal variance is not violated, because the spread of e does appear to be overall constant
+
+#h)
+
+model2 = lm(y ~ x1+x2+I(x1^2)+I(x2^2)+I(x1^3)+I(x2^3), data = hw3data)
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(model2))  
+qqline(resid(model2), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(model2), resid(model2), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+#Clearly, all three assumptions are met
+#We can't simply compare model from h and g based on meeting assumptions
+#Need to use model selection algorithms
+#Choose AIC and BIC:
+AIC(model1,model2) # AIC
+BIC(model1,model2) # BIC
+
+#The quadratic model has lower AIC and BIC scores than the cubic one. Hence, the quadratic model from g is preferred to this cubic one.
+
+```
+
+\newpage
+
+## Question 3
+```{r, include=TRUE}
+library(faraway)
+#a)
+model_a = lm(mpg ~ cyl+disp+hp+wt+drat, data = mtcars)
+vif(model_a)
+
+#The vif values clearly reflected collinearity as most of the VIF values are > 1, implying high Rj^2 values.
+
+#In particular, disp has a VIF of 10.463957.
+
+#Yes, collinearity exists. Collinearity affects regression analysis because a high VIF on regresssion coefficients, which implies high variance estimates, which implies high standard error of the particular parameter estimate. 
+
+#b)
+#Local function for vif
+myVIF <- function(model){
+  r_squared = summary(model)$r.squared
+  return(1/(1-r_squared))
+}
+
+cylLM = lm(cyl ~ hp+wt+drat, data = mtcars)
+cyl_VIF = myVIF(cylLM)
+cyl_VIF
+
+hpLM = lm(hp~ cyl+wt+drat, data = mtcars)
+hp_VIF = myVIF(hpLM)
+hp_VIF
+
+wtLM = lm(wt~cyl + hp+drat, data = mtcars)
+wt_VIF = myVIF(wtLM)
+wt_VIF
+
+dratLM = lm(drat ~ cyl+ hp+wt, data = mtcars)
+drat_VIF = myVIF(dratLM)
+drat_VIF
+
+#Collinearity stil exists, however,the model has improved, since there are no more values over 10.
+
+#c)
+fit_null=lm(mpg~1,data=mtcars)
+fit_step_aic = step(fit_null,
+                    mpg~cyl+disp+hp+wt+drat, 
+                    direction = "forward")
+
+# Resulting model
+fit_step_aic
+
+#d)
+n = nrow(mtcars)
+fit_step_bic = step(model_a, direction = "backward",k = log(n))
+# Resulting model
+fit_step_bic
+
+anova(fit_step_bic, fit_step_aic)
+#Not significant because 0.14 < alpha, no evidence against null hypothesis. The two models are not significantly different from each other.
+
+```
+
+\newpage
+
+## Question 4
+```{r, include=TRUE}
+
+modelA = lm(lpsa~lcavol+lweight+svi,data= prostate)
+modelB = lm(lpsa~lcavol+lweight+svi+lbph,data = prostate)
+modelC = lm(lpsa~lcavol+lweight+svi+lbph+lcp+gleason,data = prostate)
+
+#a) 
+AIC(modelA,modelB,modelC)
+#Best Model: modelB
+
+BIC(modelA,modelB,modelC)
+#Best Model: modelA
+
+#Adj.R squared:
+#Model A:
+summary(modelA)$adj.r.squared
+#Model B:
+summary(modelB)$adj.r.squared
+#Model C:
+summary(modelC)$adj.r.squared
+#Best model: modelB
+
+#b)
+sqrt(sum((resid(modelA)/(1-hatvalues(modelA)))^2)/n)
+sqrt(sum((resid(modelB)/(1-hatvalues(modelB)))^2)/n)
+sqrt(sum((resid(modelC)/(1-hatvalues(modelC)))^2)/n)
+#Best model: modelB
+
+#c)
+#R squared:
+#Model A:
+summary(modelA)$r.squared
+#Model B:
+summary(modelB)$r.squared
+#Model C:
+summary(modelC)$r.squared
+#Best model: modelC
+
+#R^2 is not an appropriate measure for model comparison because it will always pick the most complex model. This could lead to overfitting, resulting in incorrect models and poor out of sample predictability.

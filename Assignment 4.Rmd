@@ -1,0 +1,315 @@
+---
+title: "Assignment 4"
+author: "Yizhou Tang"
+date: "December 1, 2019"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+```{r, include=TRUE}
+#1
+
+#a)
+
+#log(p/(1-p))= -2.7399+3.0287-1.2081*0.5
+#p/(1-p) = exp(-2.7399+3.0287-1.2081*0.5)
+#p = 0.7296064*(1-p)
+#p = 0.7296064 - 0.7296064*p
+#(1+0.7296064)*p = 0.7296064
+#p = 0.7296064/(1+0.7296064)
+p = 0.7296064/(1+0.7296064)
+p
+
+#b)
+#Test statistic: z* = ^b2 / se(^b2)
+ts = -1.2081/0.4620
+ts
+#Get p value
+p_value = 2*pnorm(-abs(ts))
+#Pvalue smaller than alpha, null hypothesis rejected
+p_value
+
+#c)
+#
+D = 110.216 - 56.436
+D
+# k= p-q = 3 - 1 = 2
+qchisq(0.95,2)
+#Since D > 5.991465, null hypothesis is rejected
+
+```
+
+\newpage
+
+
+## Question 2:
+```{r, include=TRUE}
+#a)
+y = c(0,0,0,0,0,0,1,1,1,1)
+p = c(0.55,0.21,0.85,0.42,0.33,0.57,0.48,0.83,0.52,0.44)
+
+c = 0.5
+y_hat = p
+y_hat[y_hat>=c] = 1
+y_hat[y_hat<c] = 0
+
+#confusion matrix
+conf_mat = table(predicted = y_hat, actual = y)
+conf_mat
+
+TN = conf_mat[1,1]
+FN = conf_mat[1,2]
+FP = conf_mat[2,1]
+TP = conf_mat[2,2]
+
+n = sum(conf_mat)
+
+#Compute accuracy, senstivity, specifity, and precision
+accuracy = (TP+TN)/n
+sensitivity = TP/(TP+FN)
+specifity = TN/(TN+FP)
+precision = TP/(FP+TP)
+
+accuracy
+sensitivity
+specifity
+precision
+
+#b)
+
+c = 0.8
+y_hat = p
+y_hat[y_hat>=c] = 1
+y_hat[y_hat<c] = 0
+
+#confusion matrix
+conf_mat = table(predicted = y_hat, actual = y)
+conf_mat
+
+TN = conf_mat[1,1]
+FN = conf_mat[1,2]
+FP = conf_mat[2,1]
+TP = conf_mat[2,2]
+
+n = sum(conf_mat)
+
+#Compute accuracy, senstivity, specifity, and precision
+accuracy = (TP+TN)/n
+sensitivity = TP/(TP+FN)
+specifity = TN/(TN+FP)
+precision = TP/(FP+TP)
+
+accuracy
+sensitivity
+specifity
+precision
+
+#c)
+c = 0.2
+y_hat = p
+y_hat[y_hat>=c] = 1
+y_hat[y_hat<c] = 0
+
+#confusion matrix
+conf_mat = table(predicted = y_hat, actual = y)
+conf_mat
+
+#By increasing the sensitivity of prediction, what we want is to improve the proportion of Y = 1 that are correctly predicted.When c was 5, the model predicted two Y=1 correctly. When we increase c to 8, the model's sensitivity decreased, as it only predicted one Y =1 correctly.When we decrease c to 0.2, the model predicted all four Y=1 observations ocrrectly. This was expected, because as we decrease the cutoff, the number of predicted 1's would increase, since it will be easier to meet the cutoff. Hense, if we want to increase the sensitivity, we should decrease the cutoff from 0.5.
+
+```
+
+\newpage
+
+
+## Question 3:
+```{r, include=TRUE}
+#install.packages("ElemStatLearn")
+library(ElemStatLearn)
+fit_full = glm(chd ~ ., data = SAheart, family = binomial)
+
+summary(fit_full)
+
+#a)
+# probability outcomes for test data
+prob_tst <- predict(fit_full, data = SAheart, type="response")
+
+c = 0.5
+y_hat = prob_tst
+y_hat[y_hat>=c] = 1
+y_hat[y_hat<c] = 0
+
+
+# confusion matrix at cutoff=0.5
+conf_mat = table(predicted = y_hat, actual = SAheart$chd)
+conf_mat
+
+TN = conf_mat[1,1]
+FN = conf_mat[1,2]
+FP = conf_mat[2,1]
+TP = conf_mat[2,2]
+
+n = sum(conf_mat)
+
+#Compute accuracy, senstivity, specifity, and precision
+accuracy = (TP+TN)/n
+sensitivity = TP/(TP+FN)
+specifity = TN/(TN+FP)
+precision = TP/(FP+TP)
+
+accuracy
+sensitivity
+specifity
+precision
+
+#b)
+fit_back_bic = step(fit_full, direction ="backward",k=log(n),trace = 0)
+fit_back_bic
+
+#c)
+
+fit_reduced = glm(chd ~ ldl+typea+tobacco+age+famhist, data = SAheart, family = binomial)
+
+#Full model Summary:
+summary(fit_full)
+#Reduced model Summary:
+#Parameters: ldl,typea,tobacco,age,famhistPresent
+summary(fit_reduced)
+
+#Null hypothesis: B_sbp=B_adiposity=B_obesity=B_alcohol = 0
+
+anova(fit_reduced,fit_full,test = "LRT")
+p_val <- anova(fit_back_bic, fit_full, test = "LRT")[5][[1]][2]
+#Fail to reject
+
+#d)
+D_stat = deviance(fit_reduced) - deviance(fit_full)
+D_stat
+
+# k= p-q = 10 - 6 = 4
+qchisq(0.95,4)
+#Since D < 9.487729, no evidence against null hypothesis, at alpha = 0.05
+
+
+```
+
+\newpage
+
+
+## Question 4:
+```{r, include=TRUE}
+hw4_data = read.csv("https://raw.githubusercontent.com/hgweon2/ss3859/master/hw4-data1.csv")
+
+#a)
+plot(Sales ~ Month, data = hw4_data)
+
+#There appear to be a positive correlation betwen month and sales. As month increases, sales increases as well. In addition, the plot also suggests that sales increase at a much bigger magnitude as it approahces the year end. Most likely due to holiday sales.
+
+hw4_data$Cat_Month = as.factor(hw4_data$Month)
+
+modelA =  lm(Sales ~ Month + Year, data = hw4_data)
+
+modelB = lm(Sales ~ Cat_Month + Year, data = hw4_data)
+
+summary(modelA)
+summary(modelB)
+
+#By treating Month as a category predictor, the adjusted R-Squared improved drastically. Hence, modelB is a more appropriate model for this data set, in terms of adjusted R^2
+
+#b)
+#By looking at the coefficients, we can see that the coefficients of each month gradually increases more and more as we go from January to December, which comfirms our observation from question a). On the other hand, Year appears to have a positive relationship with respect to sales as well (coefficient of 5.384), it is likely due to economic improvement over the years, or better marketing plans from the management.
+
+#Use this model to predict the next 12 months:
+newdata = data.frame(Year = 1997,Cat_Month=as.factor(11))
+predict(modelB,newdata)[]
+newdata = data.frame(Year = 1997,Cat_Month=as.factor(12))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(1))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(2))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(3))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(4))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(5))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(6))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(7))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(8))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(9))
+predict(modelB,newdata)
+newdata = data.frame(Year = 1998,Cat_Month=as.factor(10))
+predict(modelB,newdata)
+
+#Assumptions
+#We are assuming that the relationship between sales and time to continue being significant over the next 12 months.
+#We are also assuming normality, linearity, and equal variance. 
+
+
+#c)
+par(mfrow=c(1,2)) # Combining plots
+qqnorm(resid(modelB))  
+qqline(resid(modelB), col = "dodgerblue", lwd = 2)
+
+# Residual plot (fitted vs resid)
+plot(fitted(modelB), resid(modelB), col = "grey", pch = 20,
+     xlab = "Fitted", ylab = "Residuals", main = "Residual plot")
+abline(h = 0, col = "darkorange", lwd = 2)
+
+
+
+#Normality is vioated: the observations do not seem to follow a normal distribution when comparing the tails.
+
+#Linearity is not violated, because residual plot shows mean of e does not vary systematically.
+
+#Equal variance is not violated, because the spread of e does appear to be constant.
+
+#install.packages("lmtest")
+library(lmtest) # For Durbin-Watson test
+dwtest(modelB,alternative="two.sided") # low p-value (< 0.05)
+#The test showed a P value of 0.03902, therefore, significant evidence against the null hypothesis.True autocorrelation is not 0.
+
+#d)
+#Estimate the lag 1 correlation rho.
+rho_hat_dw = (1-dwtest(modelB)$statistic/2)
+rho_hat_dw
+
+num_obs = 94
+
+# Regression with AR(1) errors
+y_t = hw4_data$Sales[-1]
+y_t_1 = hw4_data$Sales[-num_obs]
+y_new = y_t - rho_hat_dw*y_t_1
+
+x_t = hw4_data$Month[-1]
+x_t_1 = hw4_data$Month[-num_obs]
+x_new = x_t - rho_hat_dw*x_t_1
+x_new = as.factor(x_new)
+
+yr_t = hw4_data$Year[-1]
+yr_t_1 = hw4_data$Year[-num_obs]
+yr_new = yr_t - rho_hat_dw*yr_t_1
+
+model_new = lm(y_new~x_new+yr_new)
+
+# No autocorrelation issue in this model
+acf(resid(model_new))
+dwtest(model_new,alternative="two.sided")
+
+
+
+AIC(modelB)
+AIC(model_new)
+# The new performs better than model B in terms AIC
+
+
+```
+
+\newpage
